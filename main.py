@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, Query, Body
+from fastapi import FastAPI, Query, Body, HTTPException
 import uvicorn
 
 app = FastAPI() #создаем экземпляр приложения
@@ -44,18 +44,19 @@ def create_hotel(
     return {'status': 'ok'}
 
 @app.put("/hotels/{hotel_id}")
-def update_hotels(
-    hotels_id: int,
-    title: str = Body(default=None, description="Название города"),
-    hotel_name: str = Body(default=None, description="Название отеля")
+def update_hotel(
+    hotel_id: int,
+    title: str = Body(default=None, embed=True, description="Название города"),
+    hotel_name: str = Body(default=None, embed=True, description="Название отеля")
 ):
     for hotel in hotels:
-        if hotel['id'] == hotels_id:
+        if hotel['id'] == hotel_id:
             if title is not None:
-                hotel['title'] == title
+                hotel['title'] = title
             if hotel_name is not None:
-                hotel['name'] == hotel_name
-            return {'status': 'updated', 'hotel': hotel}
+                hotel['name'] = hotel_name
+            return {"message": "Обновление прошло успешно", "hotel": hotel}
+    raise HTTPException(status_code=404, detail="Hotel not found")
 
 
 if __name__ == "__main__":
