@@ -14,12 +14,26 @@ def get_hotel(
         id: int | None = Query(default=None, description="ID города"),
         title: str | None = Query(default=None, description="Название города")
 ):
-    ct = [city for city in data_db if id == city['id'] or title == city['title']]
-    return ct
+    hotel_ = [city for city in hotels if id == city['id'] or title == city['title']]
+    return hotel_
+# Query параметр используется для сортировки и  пагинации
+
 @app.delete("/hotels/{hotels_id}")
 def delete_hotel(hotels_id: int):
-    global data_db
-    data_db = [hotel for hotel in data_db if hotels_id != hotel['id']]
+    global hotels
+    hotels = [hotel for hotel in hotels if hotels_id != hotel['id']]
+    return {'status': 'ok'}
+
+@app.post("/hotels")
+def create_hotel(
+    title: str = Body(embed=True)
+):
+    global hotels
+    hotels.append({
+        "id": hotels[-1]["id"] + 1,
+        "title": title,
+        "name": title
+    })
     return {'status': 'ok'}
 
 if __name__ == "__main__":
