@@ -55,7 +55,7 @@ def update_hotels(
                 hotel['title'] == title
             if hotel_name is not None:
                 hotel['name'] == hotel_name
-            return {'status': 'ok'}
+            return {'status': 'updated', 'hotel': hotel}
 
 
 if __name__ == "__main__":
