@@ -26,13 +26,14 @@ def delete_hotel(hotels_id: int):
 
 @app.post("/hotels")
 def create_hotel(
-    title: str = Body(embed=True)
+    title: str = Body(),
+    name: str = Body()
 ):
     global hotels
     hotels.append({
         "id": hotels[-1]["id"] + 1,
         "title": title,
-        "name": title
+        "name": name
     })
     return {'status': 'ok'}
 
