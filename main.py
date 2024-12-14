@@ -69,8 +69,8 @@ def create_hotel(
 @app.put("/hotels/{hotel_id}")
 def create_update(
     hotel_id: int,
-    title: str | None = Body(default=None, description="Название города"),
-    hotel_name: str | None = Body(default=None, description="Название отеля")
+    title: str = Body(description="Название города"),
+    hotel_name: str = Body(description="Название отеля")
 ):
     """
     Полное обновление отеля по ID.
@@ -80,13 +80,17 @@ def create_update(
     :param hotel_name: Новое название отеля (опционально)
     :return: Сообщение об успешном обновлении или ошибка
     """
+    global hotels
+    # Ищем отель по ID
     for hotel in hotels:
         if hotel['id'] == hotel_id:
             if title is not None:
                 hotel['title'] = title
             if hotel_name is not None:
                 hotel['name'] = hotel_name
-            return {"message": "Обновление прошло успешно", "hotel": hotel}
+            return {"message": "Обновление прошло успешно", "hotel": hotel}  # Возвращаем обновленный отель
+
+    # Если отель не найден, возвращаем ошибку
     raise HTTPException(status_code=404, detail="Отель не найден")
 
 @app.patch("/hotels/{hotel_id}")
