@@ -136,7 +136,7 @@ def paginated_hotel(
     """
     global hotels
 
-    all_hotels = hotels  # Замените на ваш источник данных
+    all_hotels = hotels
 
     # Вычисляем индексы для среза
     start = page * size
