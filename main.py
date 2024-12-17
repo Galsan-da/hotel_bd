@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from fastapi.openapi.docs import get_swagger_ui_html
+#from fastapi.openapi.docs import get_swagger_ui_html
 
 from hotels import router as router_hotels
 
@@ -9,8 +9,8 @@ app = FastAPI(docs_url=None)
 
 app.include_router(router_hotels)
 
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():...
+#@app.get("/docs", include_in_schema=False)
+#async def custom_swagger_ui_html(): ...
 
 # Точка входа для запуска приложения
 if __name__ == "__main__":
