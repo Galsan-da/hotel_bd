@@ -1,11 +1,9 @@
 from fastapi import Query, Body, HTTPException, APIRouter
 
+from schemas.hotels import Hotel, HotelPATCH
+
 # Создаем экземпляр FastAPI приложения
 router = APIRouter(prefix="/hotels", tags=["Отели"])
-
-class Hotel:
-    title: str
-    name: str
 
 # Список отелей для демонстрационных целей
 hotels = [
@@ -48,11 +46,10 @@ def delete_hotel(hotels_id: int):
     hotels = [hotel for hotel in hotels if hotels_id != hotel['id']]
     return {'status': 'ok'}
 
+
+
 @router.post("")
-def create_hotel(
-    title: str = Body(),
-    name: str = Body()
-):
+def create_hotel(hotel_data: Hotel):
     """
     Создать новый отель.
 
@@ -63,16 +60,15 @@ def create_hotel(
     global hotels
     hotels.append({
         "id": hotels[-1]["id"] + 1,  # Устанавливаем ID как последний ID + 1
-        "title": title,
-        "name": name
+        "title": hotel_data.title,
+        "name": hotel_data.hotel_name
     })
     return {'status': 'ok'}
 
 @router.put("/{hotel_id}")
 def create_update(
     hotel_id: int,
-    title: str = Body(description="Название города"),
-    hotel_name: str = Body(description="Название отеля")
+    hotel_data: Hotel
 ):
     """
     Полное обновление отеля по ID.
@@ -86,10 +82,10 @@ def create_update(
     # Ищем отель по ID
     for hotel in hotels:
         if hotel['id'] == hotel_id:
-            if title is not None:
-                hotel['title'] = title
-            if hotel_name is not None:
-                hotel['name'] = hotel_name
+            if hotel_data.title is not None:
+                hotel['title'] = hotel_data.title
+            if hotel_data.hotel_name is not None:
+                hotel['name'] = hotel_data.hotel_name
             return {"message": "Обновление прошло успешно", "hotel": hotel}  # Возвращаем обновленный отель
 
     # Если отель не найден, возвращаем ошибку
@@ -98,8 +94,7 @@ def create_update(
 @router.patch("/{hotel_id}")
 def create_patch(
     hotel_id: int,
-    title: str | None = Query(default=None, description="Название города"),
-    hotel_name: str | None = Query(default=None, description="Название отеля")
+    hotel_data: HotelPATCH
 ):
     """
     Частичное обновление отеля по ID.
@@ -110,17 +105,17 @@ def create_patch(
     :return: Обновленный отель или ошибка
     """
     # Проверяем, что хотя бы одно поле для обновления указано
-    if title is None and hotel_name is None:
+    if hotel_data.title is None and hotel_data.hotel_name is None:
         raise HTTPException(status_code=400, detail="Необходимо предоставить данные для обновления")
 
     # Ищем отель по ID
     for hotel in hotels:
         if hotel['id'] == hotel_id:
             # Обновляем только те поля, которые переданы
-            if title is not None:
-                hotel['title'] = title
-            if hotel_name is not None:
-                hotel['name'] = hotel_name
+            if hotel_data.title is not None:
+                hotel['title'] = hotel_data.title
+            if hotel_data.hotel_name is not None:
+                hotel['name'] = hotel_data.hotel_name
             return hotel  # Возвращаем обновленный отель
 
     # Если отель не найден, возвращаем ошибку
