@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from hotels import router as router_hotels
 
 # Создаем экземпляр FastAPI приложения
-app = FastAPI(docs_url=None)
+app = FastAPI()
 
 app.include_router(router_hotels)
 
