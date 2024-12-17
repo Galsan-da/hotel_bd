@@ -1,4 +1,5 @@
-from fastapi import Query, Body, HTTPException, APIRouter
+from fastapi import Query, HTTPException, APIRouter
+from typing import List
 
 from schemas.hotels import Hotel, HotelPATCH
 
@@ -45,8 +46,6 @@ def delete_hotel(hotels_id: int):
     global hotels
     hotels = [hotel for hotel in hotels if hotels_id != hotel['id']]
     return {'status': 'ok'}
-
-
 
 @router.post("")
 def create_hotel(hotel_data: Hotel):
@@ -120,3 +119,33 @@ def create_patch(
 
     # Если отель не найден, возвращаем ошибку
     raise HTTPException(status_code=404, detail="Отель не найден")
+
+
+@router.get("/{hotel_id}")
+def get_hotels(
+    hotel_id: int,
+    hotel_data: Hotel,
+    limit: int = Query(default=10, ge=1, description="Количество записей для получения"),
+    offset: int = Query(default=0, ge=0, description="Смещение в списке отелей")
+) -> List[dict]:
+    """
+    Получить список отелей с фильтрацией по ID, названию города и названию отеля,
+    с поддержкой пагинации (limit и offset).
+    """
+    # Фильтрация отелей по заданным параметрам
+    filtered_hotels = []
+    for hotel in hotels:
+        if hotel_id is not None and hotel['id'] != hotel_id:
+            continue
+        if hotel_data.title is not None and hotel_data.title.lower() not in hotel['title'].lower():
+            continue
+        if hotel_data.hotel_name is not None and hotel_data.hotel_name.lower() not in hotel['hotel_name'].lower():
+            continue
+        filtered_hotels.append(hotel)
+
+    # Реализация пагинации
+    start = offset
+    end = offset + limit
+    paginated_hotels = filtered_hotels[start:end]
+
+    return paginated_hotels
