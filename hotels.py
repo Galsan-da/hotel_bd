@@ -1,3 +1,4 @@
+import math
 from fastapi import Query, HTTPException, APIRouter
 from typing import List
 
@@ -8,9 +9,13 @@ router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 # Список отелей для демонстрационных целей
 hotels = [
-    {'id': 1, 'title': 'Sochi', 'name': 'sochi'},
-    {'id': 2, 'title': 'Moscow', 'name': 'moscow'},
-    {'id': 3, 'title': 'New York', 'name': 'New York'},
+    {'id': 1, 'title': 'Sochi', 'hotel_name': 'sochi'},
+    {'id': 2, 'title': 'Moscow', 'hotel_name': 'moscow'},
+    {'id': 3, 'title': 'New York', 'hotel_name': 'New York'},
+    {'id': 4, 'title': 'Saint-Petersburg', 'hotel_name': 'saint-Petersburg'},
+    {'id': 5, 'title': 'Ulan-ude', 'hotel_name': 'ulan-ude'},
+    {'id': 6, 'title': 'Irkutsk', 'hotel_name': 'irkutsk'},
+    {'id': 7, 'title': 'Tomsk', 'hotel_name': 'tomsk'}
 ]
 
 @router.get("")
@@ -121,31 +126,34 @@ def create_patch(
     raise HTTPException(status_code=404, detail="Отель не найден")
 
 
-@router.get("/{hotel_id}")
-def get_hotels(
-    hotel_id: int,
-    hotel_data: Hotel,
-    limit: int = Query(default=10, ge=1, description="Количество записей для получения"),
-    offset: int = Query(default=0, ge=0, description="Смещение в списке отелей")
-) -> List[dict]:
+@router.get("/hotels")
+def paginated_hotel(
+    page: int = Query(ge=0, default=0, description="Номер страницы для отображения"),
+    size: int = Query(ge=1, le=10, description="Количество записей на странице")
+) -> list:
     """
-    Получить список отелей с фильтрацией по ID, названию города и названию отеля,
-    с поддержкой пагинации (limit и offset).
+    Получить список отелей с поддержкой пагинации (page и size).
     """
-    # Фильтрация отелей по заданным параметрам
-    filtered_hotels = []
-    for hotel in hotels:
-        if hotel_id is not None and hotel['id'] != hotel_id:
-            continue
-        if hotel_data.title is not None and hotel_data.title.lower() not in hotel['title'].lower():
-            continue
-        if hotel_data.hotel_name is not None and hotel_data.hotel_name.lower() not in hotel['hotel_name'].lower():
-            continue
-        filtered_hotels.append(hotel)
+    global hotels
 
-    # Реализация пагинации
-    start = offset
-    end = offset + limit
-    paginated_hotels = filtered_hotels[start:end]
+    all_hotels = hotels  # Замените на ваш источник данных
 
-    return paginated_hotels
+    # Вычисляем индексы для среза
+    start = page * size
+    end = (page + 1) * size
+
+    # Получаем соответствующий срез данных
+    paginated_hotels = all_hotels[start:end]
+
+    # Вычисляем общее количество страниц
+    total_pages = math.ceil(len(all_hotels) / size) - 1
+    # Формируем ответ, добавляя метаданные пагинации
+    response = paginated_hotels + [
+        {
+            "page": page,
+            "size": size,
+            "total": total_pages,
+        }
+    ]
+
+    return response
