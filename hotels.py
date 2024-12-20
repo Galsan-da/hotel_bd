@@ -1,8 +1,7 @@
-import math
 from fastapi import Query, HTTPException, APIRouter
-from typing import List
 
 from schemas.hotels import Hotel, HotelPATCH
+from dependencies import PaginationDep
 
 # Создаем экземпляр FastAPI приложения
 router = APIRouter(prefix="/hotels", tags=["Отели"])
@@ -128,32 +127,21 @@ def create_patch(
 
 @router.get("/hotels")
 def paginated_hotel(
-    page: int = Query(ge=0, default=0, description="Номер страницы для отображения"),
-    size: int = Query(ge=1, le=10, description="Количество записей на странице")
-) -> list:
+    paginatoin: PaginationDep,
+    id: int | None = Query(default=None, description="ID города"),
+    hotel_name: str | None = Query(default=None, description="Название отеля"),
+):
+
     """
     Получить список отелей с поддержкой пагинации (page и size).
     """
     global hotels
 
-    all_hotels = hotels
-
-    # Вычисляем индексы для среза
-    start = page * size
-    end = (page + 1) * size
-
-    # Получаем соответствующий срез данных
-    paginated_hotels = all_hotels[start:end]
-
-    # Вычисляем общее количество страниц
-    total_pages = math.ceil(len(all_hotels) / size) - 1
-    # Формируем ответ, добавляя метаданные пагинации
-    response = paginated_hotels + [
-        {
-            "page": page,
-            "size": size,
-            "total": total_pages,
-        }
+    hotel_ = [
+        hotel for hotel in hotels
+        if (id is None or id == hotel['id']) and
+           (hotel_name is None or hotel_name == hotel['name'])
     ]
-
-    return response
+    if paginatoin.page and paginatoin.per_page:
+        return hotel_[paginatoin.per_page * (paginatoin.page - 1):][:paginatoin.per_page]
+    return hotel_
