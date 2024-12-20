@@ -1,7 +1,7 @@
-from fastapi import Query, HTTPException, APIRouter
+from fastapi import Query, HTTPException, APIRouter, Body
 
 from src.schemas.hotels import Hotel, HotelPATCH
-from src.dependencies import PaginationDep
+from src.api.dependencies import PaginationDep
 
 # Создаем экземпляр FastAPI приложения
 router = APIRouter(prefix="/hotels", tags=["Отели"])
@@ -52,7 +52,16 @@ def delete_hotel(hotels_id: int):
     return {'status': 'ok'}
 
 @router.post("")
-def create_hotel(hotel_data: Hotel):
+def create_hotel(hotel_data: Hotel = Body(openapi_examples={
+    "1": {"summary": "Сочи", "value":{
+        "title": "Отел у моря",
+        "name": "sochi u morya",
+    }},
+    "2": {"summary": "Дубай", "value":{
+        "title": "Отель Дубай",
+        "name": "Dubai"
+    }}
+})):
     """
     Создать новый отель.
 
