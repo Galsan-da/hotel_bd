@@ -1,8 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
-#from fastapi.openapi.docs import get_swagger_ui_html
 
-from hotels import router as router_hotels
+from src.hotels import router as router_hotels
 
 # Создаем экземпляр FastAPI приложения
 app = FastAPI()
