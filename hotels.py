@@ -1,7 +1,7 @@
 from fastapi import Query, HTTPException, APIRouter
 
-from schemas.hotels import Hotel, HotelPATCH
-from dependencies import PaginationDep
+from src.hotels import Hotel, HotelPATCH
+from src.dependencies import PaginationDep
 
 # Создаем экземпляр FastAPI приложения
 router = APIRouter(prefix="/hotels", tags=["Отели"])
