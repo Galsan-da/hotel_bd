@@ -1,7 +1,11 @@
 from fastapi import Query, HTTPException, APIRouter, Body
+from sqlalchemy import insert, select
+#from sqlalchemy.orm import Session
 
 from src.schemas.hotels import Hotel, HotelPATCH
 from src.api.dependencies import PaginationDep
+from src.models.hotels import HotelsOrm
+from src.database import async_session_maker, engine
 
 # Создаем экземпляр FastAPI приложения
 router = APIRouter(prefix="/hotels", tags=["Отели"])
@@ -18,7 +22,7 @@ hotels = [
 ]
 
 @router.get("")
-def get_hotel(
+async def get_hotel(
         id: int | None = Query(default=None, description="ID города"),
         title: str | None = Query(default=None, description="Название города"),
         hotel_name: str | None = Query(default=None, description="Название отеля")
@@ -31,13 +35,11 @@ def get_hotel(
     :param hotel_name: Название отеля (необязательный параметр)
     :return: Список отелей, соответствующих заданным параметрам
     """
-    hotel_ = [
-        hotel for hotel in hotels
-        if (id is None or id == hotel['id']) and
-           (title is None or title == hotel['title']) and
-           (hotel_name is None or hotel_name == hotel['name'])
-    ]
-    return hotel_  # Возвращаем отфильтрованный список отелей
+    async with async_session_maker as session:
+        query = select(HotelsOrm)
+        result = await session.execute(query)
+        hotels = result.scalars().all()
+        return hotels
 
 @router.delete("/{hotels_id}")
 def delete_hotel(hotels_id: int):
@@ -52,14 +54,14 @@ def delete_hotel(hotels_id: int):
     return {'status': 'ok'}
 
 @router.post("")
-def create_hotel(hotel_data: Hotel = Body(openapi_examples={
+async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     "1": {"summary": "Сочи", "value":{
         "title": "Отел у моря",
-        "name": "sochi u morya",
+        "location": "ул. У Моря, 1",
     }},
     "2": {"summary": "Дубай", "value":{
         "title": "Отель Дубай",
-        "name": "Dubai"
+        "location": "пр. Шейха, 1"
     }}
 })):
     """
@@ -69,12 +71,12 @@ def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     :param name: Название отеля
     :return: Статус операции
     """
-    global hotels
-    hotels.append({
-        "id": hotels[-1]["id"] + 1,  # Устанавливаем ID как последний ID + 1
-        "title": hotel_data.title,
-        "name": hotel_data.hotel_name
-    })
+    async with async_session_maker as session:
+      add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_damp())
+      print(add_hotel_stmt.compile(engine, compile_kwargs={"literal_binds":True}))
+      await session.execute(add_hotel_stmt)
+      await session.commit()
+
     return {'status': 'ok'}
 
 @router.put("/{hotel_id}")
