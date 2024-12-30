@@ -10,30 +10,22 @@ from src.database import async_session_maker, engine
 # Создаем экземпляр FastAPI приложения
 router = APIRouter(prefix="/hotels", tags=["Отели"])
 
-# Список отелей для демонстрационных целей
-hotels = [
-    {'id': 1, 'title': 'Sochi', 'hotel_name': 'sochi'},
-    {'id': 2, 'title': 'Moscow', 'hotel_name': 'moscow'},
-    {'id': 3, 'title': 'New York', 'hotel_name': 'New York'},
-    {'id': 4, 'title': 'Saint-Petersburg', 'hotel_name': 'saint-Petersburg'},
-    {'id': 5, 'title': 'Ulan-ude', 'hotel_name': 'ulan-ude'},
-    {'id': 6, 'title': 'Irkutsk', 'hotel_name': 'irkutsk'},
-    {'id': 7, 'title': 'Tomsk', 'hotel_name': 'tomsk'}
-]
-
 @router.get("")
 async def get_hotel(
         pagination: PaginationDep,
-        id: int | None = Query(default=None, description="ID города"),
+        #id: int | None = Query(default=None, description="ID города"),
         title: str | None = Query(default=None, description="Название отеля"),
+        location: str | None = Query(default=None, description="Локация отеля")
 ):
-    per_page = pagination.per_page
-    async with async_session_maker as session:
+    per_page = pagination.per_page or 5
+    async with async_session_maker() as session:
         query = select(HotelsOrm)
-        if id:
-            query = query.filter_by(id=id)
+        #if id:
+            #query = query.filter_by(id=id)
         if title:
-            query = query.filter_by(title=title)
+            query = query.filter(HotelsOrm.title.ilike(f"%{title}%"))
+        if location:
+            query = query.filter(HotelsOrm.location.ilike(f"%{location}%"))
         query = (
             query
             .filter_by(id=id, title=title)
@@ -60,11 +52,11 @@ def delete_hotel(hotels_id: int):
 async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     "1": {"summary": "Сочи", "value":{
         "title": "Отел у моря",
-        "location": "ул. У Моря, 1",
+        "location": "Сочи, ул. У Моря, 1",
     }},
     "2": {"summary": "Дубай", "value":{
         "title": "Отель Дубай",
-        "location": "пр. Шейха, 1"
+        "location": "Дубай, пр. Шейха, 1"
     }}
 })):
     """
@@ -75,7 +67,7 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     :return: Статус операции
     """
     async with async_session_maker() as session:
-      add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_damp())
+      add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())
       print(add_hotel_stmt.compile(engine, compile_kwargs={"literal_binds":True}))
       await session.execute(add_hotel_stmt)
       await session.commit()
@@ -101,8 +93,8 @@ def create_update(
         if hotel['id'] == hotel_id:
             if hotel_data.title is not None:
                 hotel['title'] = hotel_data.title
-            if hotel_data.hotel_name is not None:
-                hotel['name'] = hotel_data.hotel_name
+            if hotel_data.title is not None:
+                hotel['name'] = hotel_data.title
             return {"message": "Обновление прошло успешно", "hotel": hotel}  # Возвращаем обновленный отель
 
     # Если отель не найден, возвращаем ошибку
@@ -122,7 +114,7 @@ def create_patch(
     :return: Обновленный отель или ошибка
     """
     # Проверяем, что хотя бы одно поле для обновления указано
-    if hotel_data.title is None and hotel_data.hotel_name is None:
+    if hotel_data.title is None and hotel_data.title is None:
         raise HTTPException(status_code=400, detail="Необходимо предоставить данные для обновления")
 
     # Ищем отель по ID
@@ -131,31 +123,9 @@ def create_patch(
             # Обновляем только те поля, которые переданы
             if hotel_data.title is not None:
                 hotel['title'] = hotel_data.title
-            if hotel_data.hotel_name is not None:
-                hotel['name'] = hotel_data.hotel_name
+            if hotel_data.title is not None:
+                hotel['name'] = hotel_data.title
             return hotel  # Возвращаем обновленный отель
 
     # Если отель не найден, возвращаем ошибку
     raise HTTPException(status_code=404, detail="Отель не найден")
-
-
-@router.get("/hotels")
-def paginated_hotel(
-    paginatoin: PaginationDep,
-    id: int | None = Query(default=None, description="ID города"),
-    hotel_name: str | None = Query(default=None, description="Название отеля"),
-):
-
-    """
-    Получить список отелей с поддержкой пагинации (page и size).
-    """
-    global hotels
-
-    hotel_ = [
-        hotel for hotel in hotels
-        if (id is None or id == hotel['id']) and
-           (hotel_name is None or hotel_name == hotel['name'])
-    ]
-    if paginatoin.page and paginatoin.per_page:
-        return hotel_[paginatoin.per_page * (paginatoin.page - 1):][:paginatoin.per_page]
-    return hotel_
