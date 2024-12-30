@@ -23,20 +23,23 @@ hotels = [
 
 @router.get("")
 async def get_hotel(
+        pagination: PaginationDep,
         id: int | None = Query(default=None, description="ID города"),
-        title: str | None = Query(default=None, description="Название города"),
-        hotel_name: str | None = Query(default=None, description="Название отеля")
+        title: str | None = Query(default=None, description="Название отеля"),
 ):
-    """
-    Получить список отелей с фильтрацией по ID, названию города и названию отеля.
-
-    :param id: ID города (необязательный параметр)
-    :param title: Название города (необязательный параметр)
-    :param hotel_name: Название отеля (необязательный параметр)
-    :return: Список отелей, соответствующих заданным параметрам
-    """
+    per_page = pagination.per_page
     async with async_session_maker as session:
         query = select(HotelsOrm)
+        if id:
+            query = query.filter_by(id=id)
+        if title:
+            query = query.filter_by(title=title)
+        query = (
+            query
+            .filter_by(id=id, title=title)
+            .limit(per_page)
+            .offset(per_page * (pagination.page - 1))
+        )
         result = await session.execute(query)
         hotels = result.scalars().all()
         return hotels
@@ -71,7 +74,7 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     :param name: Название отеля
     :return: Статус операции
     """
-    async with async_session_maker as session:
+    async with async_session_maker() as session:
       add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_damp())
       print(add_hotel_stmt.compile(engine, compile_kwargs={"literal_binds":True}))
       await session.execute(add_hotel_stmt)
