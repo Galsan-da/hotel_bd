@@ -1,5 +1,5 @@
 from fastapi import Query, HTTPException, APIRouter, Body
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, func
 #from sqlalchemy.orm import Session
 
 from src.schemas.hotels import Hotel, HotelPATCH
@@ -23,14 +23,15 @@ async def get_hotel(
        # if id:
             #query = query.filter_by(id=id)
         if title:
-            query = query.filter(HotelsOrm.title.ilike(f"%{title}%"))
+            query = query.filter(func.lower(HotelsOrm.title).contains(title.strip().lower()))
         if location:
-            query = query.filter(HotelsOrm.location.ilike(f"%{location}%"))
+            query = query.filter(func.lower(HotelsOrm.location).contains(location.strip().lower()))
         query = (
             query
             .limit(per_page)
             .offset(per_page * (pagination.page - 1))
         )
+        print(query.compile(engine, compile_kwargs={"literal_binds":True}))
         result = await session.execute(query)
         hotels = result.scalars().all()
         return hotels
