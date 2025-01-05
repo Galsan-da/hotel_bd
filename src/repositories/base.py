@@ -28,16 +28,12 @@ class BaseRepository:
             update(self.model)
             .filter_by(**filter_by)
             .values(**data.model_dump())
-            .returning(self.model)
         )
-        result = await self.session.execute(query)
-        return result.scalars().one()
+        await self.session.execute(query)
 
     async def delete(self, **filter_by) -> None:
         query = (
             delete(self.model)
             .filter_by(**filter_by)
-            .returning(self.model)
         )
-        result = await self.session.execute(query)
-        return result.scalars().one_or_none()
+        await self.session.execute(query)

@@ -28,30 +28,16 @@ async def get_hotel(
         )
 
 
-@router.delete("/")
+@router.delete("/{hotel_id}")
 async def delete_hotel(
-    id: Optional[int] = Query(None),
-    title: Optional[str] = Query(None),
-    location: Optional[str] = Query(None),
+    hotel_id: int
 ):
     """
     Удалить отель.
 
     """
-
-    filter_params = {}
-    if id is not None:
-        filter_params['id'] = id
-    if title is not None:
-        filter_params['title'] = title
-    if location is not None:
-        filter_params['location'] = location
-
-    if not filter_params:
-        raise HTTPException(status_code=400, detail="Необходимо указать хотя бы один параметр фильтрации.")
-
     async with async_session_maker() as session:
-      hotel = await HotelsRepository(session).delete(**filter_params)
+      await HotelsRepository(session).delete(id=hotel_id)
       await session.commit()
     return {'status': 'ok'}
 
@@ -74,8 +60,9 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
       await session.commit()
       return {'status': 'ok', "data": hotel}
 
-@router.put("/")
+@router.put("/{hotel_id}")
 async def create_update(
+    hotel_id: int,
     hotel_data: Hotel= Body(openapi_examples={
     "1": {"summary": "Сочи", "value":{
         "title": "Отел у моря",
@@ -86,29 +73,15 @@ async def create_update(
         "location": "Дубай, пр. Шейха, 1"
     }}
 }),
-    id: Optional[int] = Query(None),
-    title: Optional[str] = Query(None),
-    location: Optional[str] = Query(None),
 ):
     """
     Полное обновление отеля.
 
     """
-    filter_params = {}
-    if id is not None:
-        filter_params['id'] = id
-    if title is not None:
-        filter_params['title'] = title
-    if location is not None:
-        filter_params['location'] = location
-
-    if not filter_params:
-        raise HTTPException(status_code=400, detail="Необходимо указать хотя бы один параметр фильтрации.")
-
     async with async_session_maker() as session:
-      hotel = await HotelsRepository(session).edit(hotel_data, **filter_params)
+      await HotelsRepository(session).edit(hotel_data, id=hotel_id)
       await session.commit()
-      return {'status': 'ok', 'hotel': hotel}
+      return {'status': 'ok'}
 
 @router.patch("/{hotel_id}")
 def create_patch(
