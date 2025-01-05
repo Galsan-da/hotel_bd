@@ -54,11 +54,8 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     Создать новый отель.
     """
     async with async_session_maker() as session:
-      hotel_repo = HotelsRepository(session)
-      result = await hotel_repo.add(hotel_data)
+      hotel = await HotelsRepository(session).add(hotel_data)
       await session.commit()
-      inserted_id = result.inserted_primary_key[0]
-      hotel = await hotel_repo.get_one_or_none(id=inserted_id)
       return {'status': 'ok', "data": hotel}
 
 @router.put("/{hotel_id}")
