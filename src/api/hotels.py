@@ -1,6 +1,5 @@
 from fastapi import Query, HTTPException, APIRouter, Body
 from sqlalchemy import insert, select, func
-#from sqlalchemy.orm import Session
 
 from src.schemas.hotels import Hotel, HotelPATCH
 from src.api.dependencies import PaginationDep
@@ -53,19 +52,14 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
 })):
     """
     Создать новый отель.
-
-    :param title: Название города
-    :param name: Название отеля
-    :return: Статус операции
     """
     async with async_session_maker() as session:
-    #  add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())
-    #  print(add_hotel_stmt.compile(engine, compile_kwargs={"literal_binds":True}))
-    #  await session.execute(add_hotel_stmt)
-      hotel = await HotelsRepository(session).add()
+      hotel_repo = HotelsRepository(session)
+      result = await hotel_repo.add(hotel_data)
       await session.commit()
-
-    return {'status': 'ok', "data": hotel}
+      inserted_id = result.inserted_primary_key[0]
+      hotel = await hotel_repo.get_one_or_none(id=inserted_id)
+      return {'status': 'ok', "data": hotel}
 
 @router.put("/{hotel_id}")
 def create_update(
