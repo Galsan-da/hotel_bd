@@ -84,31 +84,18 @@ async def create_update(
       return {'status': 'ok'}
 
 @router.patch("/{hotel_id}")
-def create_patch(
+async def create_patch(
     hotel_id: int,
     hotel_data: HotelPATCH
 ):
     """
     Частичное обновление отеля по ID.
 
-    :param hotel_id: ID отеля, который нужно обновить
-    :param title: Новое название города (опционально)
-    :param hotel_name: Новое название отеля (опционально)
-    :return: Обновленный отель или ошибка
     """
-    # Проверяем, что хотя бы одно поле для обновления указано
-    if hotel_data.title is None and hotel_data.title is None:
-        raise HTTPException(status_code=400, detail="Необходимо предоставить данные для обновления")
-
-    # Ищем отель по ID
-    for hotel in hotels:
-        if hotel['id'] == hotel_id:
-            # Обновляем только те поля, которые переданы
-            if hotel_data.title is not None:
-                hotel['title'] = hotel_data.title
-            if hotel_data.title is not None:
-                hotel['name'] = hotel_data.title
-            return hotel  # Возвращаем обновленный отель
+    async with async_session_maker() as session:
+      await HotelsRepository(session).edit(hotel_data, id=hotel_id, exclude_unset=True)
+      await session.commit()
+      return {'status': 'ok'}
 
     # Если отель не найден, возвращаем ошибку
     raise HTTPException(status_code=404, detail="Отель не найден")
