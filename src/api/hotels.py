@@ -99,3 +99,9 @@ async def create_patch(
 
     # Если отель не найден, возвращаем ошибку
     raise HTTPException(status_code=404, detail="Отель не найден")
+
+@router.get("/{hotel_id}")
+async def get_one_hotel(hotel_id: int):
+   async with async_session_maker() as session:
+      hotel = await HotelsRepository(session).get_one_or_none(id=hotel_id)
+      return {'status': 'ok', "data": hotel}
