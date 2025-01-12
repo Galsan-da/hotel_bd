@@ -2,7 +2,7 @@ from fastapi import Query, HTTPException, APIRouter, Body
 from sqlalchemy import insert, select, func
 from typing import Optional
 
-from src.schemas.hotels import Hotel, HotelPATCH
+from src.schemas.hotels import HotelAdd, HotelPATCH
 from src.api.dependencies import PaginationDep
 from src.models.hotels import HotelsOrm
 from src.database import async_session_maker, engine
@@ -42,7 +42,7 @@ async def delete_hotel(
     return {'status': 'ok'}
 
 @router.post("")
-async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
+async def create_hotel(hotel_data: HotelAdd = Body(openapi_examples={
     "1": {"summary": "Сочи", "value":{
         "title": "Отел у моря",
         "location": "Сочи, ул. У Моря, 1",
@@ -63,7 +63,7 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
 @router.put("/{hotel_id}")
 async def create_update(
     hotel_id: int,
-    hotel_data: Hotel= Body(openapi_examples={
+    hotel_data: HotelAdd= Body(openapi_examples={
     "1": {"summary": "Сочи", "value":{
         "title": "Отел у моря",
         "location": "Сочи, ул. У Моря, 1",
