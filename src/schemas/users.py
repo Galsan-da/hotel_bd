@@ -13,3 +13,6 @@ class UserAdd(BaseModel):
 class User(UserAdd):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+class UserWithHashedPassword(User):
+    hashed_password: str
