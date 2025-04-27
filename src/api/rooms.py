@@ -1,107 +1,62 @@
-from fastapi import Query, HTTPException, APIRouter, Body
-from sqlalchemy import insert, select, func
+# Файл: routers/rooms.py
+from fastapi import APIRouter, HTTPException, Body, Query, status
+from sqlalchemy.exc import IntegrityError
 from typing import Optional
 
-from src.schemas.hotels import HotelAdd, HotelPATCH
+from src.database import async_session_maker
+from src.repositories.rooms import RoomsRepository
+from src.schemas.rooms import RoomAdd, RoomResponse, RoomUpdate
 from src.api.dependencies import PaginationDep
-from src.models.hotels import HotelsOrm
-from src.database import async_session_maker, engine
-from src.repositories.hotels import HotelsRepository
 
-# Создаем экземпляр FastAPI приложения
-router = APIRouter(prefix="/hotels", tags=["Номера"])
+router = APIRouter(prefix="/rooms", tags=["Номера"])
 
-@router.get("{hotel_id}")
-async def get_room(
-        pagination: PaginationDep,
-        #id: int | None = Query(default=None, description="ID города"),
-        title: str | None = Query(default=None, description="Название отеля"),
-        location: str | None = Query(default=None, description="Локация отеля")
-):
-    per_page = pagination.per_page or 5
+
+@router.get("/{room_id}", response_model=RoomResponse)
+async def get_room(room_id: int):
     async with async_session_maker() as session:
-        return await HotelsRepository(session).get_all(
-            location=location,
-            title=title,
-            limit=per_page,
-            offset=per_page * (pagination.page - 1)
+        room = await RoomsRepository(session).get_one_or_none(id=room_id)
+        if not room:
+            raise HTTPException(status_code=404, detail="Номер не найден")
+        return room
+
+@router.get("", response_model=list[RoomResponse])
+async def get_rooms(
+    pagination: PaginationDep,
+    hotel_id: Optional[int] = Query(None),
+    price_min: Optional[int] = Query(None),
+    price_max: Optional[int] = Query(None)
+):
+    async with async_session_maker() as session:
+        return await RoomsRepository(session).get_all(
+            hotel_id=hotel_id,
+            price_min=price_min,
+            price_max=price_max,
+            limit=pagination.per_page,
+            offset=pagination.per_page * (pagination.page - 1)
         )
 
-
-@router.delete("/{hotel_id}")
-async def delete_room(
-    hotel_id: int
-):
-    """
-    Удалить отель.
-
-    """
+@router.put("/{room_id}", response_model=RoomResponse)
+async def update_room(room_id: int, room_data: RoomAdd):
     async with async_session_maker() as session:
-      await HotelsRepository(session).delete(id=hotel_id)
-      await session.commit()
-    return {'status': 'ok'}
+        room = await RoomsRepository(session).edit(room_data, id=room_id)
+        if not room:
+            raise HTTPException(status_code=404, detail="Номер не найден")
+        await session.commit()
+        return room
 
-@router.post("")
-async def create_room(hotel_data: HotelAdd = Body(openapi_examples={
-    "1": {"summary": "Сочи", "value":{
-        "title": "Отел у моря",
-        "location": "Сочи, ул. У Моря, 1",
-    }},
-    "2": {"summary": "Дубай", "value":{
-        "title": "Отель Дубай",
-        "location": "Дубай, пр. Шейха, 1"
-    }}
-})):
-    """
-    Создать новый отель.
-    """
+@router.patch("/{room_id}", response_model=RoomResponse)
+async def partial_update_room(room_id: int, room_data: RoomUpdate):
     async with async_session_maker() as session:
-      hotel = await HotelsRepository(session).add(hotel_data)
-      await session.commit()
-      return {'status': 'ok', "data": hotel}
+        room = await RoomsRepository(session).edit(room_data, id=room_id, exclude_unset=True)
+        if not room:
+            raise HTTPException(status_code=404, detail="Номер не найден")
+        await session.commit()
+        return room
 
-@router.put("/{hotel_id}")
-async def create_update(
-    hotel_id: int,
-    hotel_data: HotelAdd= Body(openapi_examples={
-    "1": {"summary": "Сочи", "value":{
-        "title": "Отел у моря",
-        "location": "Сочи, ул. У Моря, 1",
-    }},
-    "2": {"summary": "Дубай", "value":{
-        "title": "Отель Дубай",
-        "location": "Дубай, пр. Шейха, 1"
-    }}
-}),
-):
-    """
-    Полное обновление отеля.
-
-    """
+@router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_room(room_id: int):
     async with async_session_maker() as session:
-      await HotelsRepository(session).edit(hotel_data, id=hotel_id)
-      await session.commit()
-      return {'status': 'ok'}
-
-@router.patch("/{hotel_id}")
-async def create_patch(
-    hotel_id: int,
-    hotel_data: HotelPATCH
-):
-    """
-    Частичное обновление отеля по ID.
-
-    """
-    async with async_session_maker() as session:
-      await HotelsRepository(session).edit(hotel_data, id=hotel_id, exclude_unset=True)
-      await session.commit()
-      return {'status': 'ok'}
-
-    # Если отель не найден, возвращаем ошибку
-    raise HTTPException(status_code=404, detail="Отель не найден")
-
-@router.get("/{hotel_id}")
-async def get_one_hotel(hotel_id: int):
-   async with async_session_maker() as session:
-      hotel = await HotelsRepository(session).get_one_or_none(id=hotel_id)
-      return {'status': 'ok', "data": hotel}
+        deleted = await RoomsRepository(session).delete(id=room_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Номер не найден")
+        await session.commit()
