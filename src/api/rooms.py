@@ -1,7 +1,6 @@
 # Файл: routers/rooms.py
-from fastapi import APIRouter, HTTPException, Body, Query, status
-from sqlalchemy.exc import IntegrityError
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Body
+
 
 from src.database import async_session_maker
 from src.repositories.rooms import RoomsRepository
@@ -45,7 +44,7 @@ async def edit_room(hotel_id: int, room_id: int, room_data: RoomAddRequest):
 
 @router.patch("/{hotel_id}/rooms/{room_id}")
 async def partial_update_room(hotel_id: int, room_id: int, room_data: RoomPatchRequest):
-    _room_data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump())
+    _room_data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
     async with async_session_maker() as session:
         room = await RoomsRepository(session).edit(_room_data, id=room_id, hotel_id=hotel_id, exclude_unset=True)
         if not room:
