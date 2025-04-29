@@ -5,58 +5,58 @@ from typing import Optional
 
 from src.database import async_session_maker
 from src.repositories.rooms import RoomsRepository
-from src.schemas.rooms import RoomAdd, RoomResponse, RoomUpdate
+from src.schemas.rooms import RoomAdd, RoomAddRequest, RoomPatch, RoomPatchRequest
 from src.api.dependencies import PaginationDep
 
-router = APIRouter(prefix="/rooms", tags=["Номера"])
+router = APIRouter(prefix="/hotels", tags=["Номера"])
 
 
-@router.get("/{room_id}", response_model=RoomResponse)
-async def get_room(room_id: int):
+@router.get("/{hotel_id}/rooms")
+async def get_rooms(hotel_id: int):
     async with async_session_maker() as session:
-        room = await RoomsRepository(session).get_one_or_none(id=room_id)
-        if not room:
-            raise HTTPException(status_code=404, detail="Номер не найден")
-        return room
+        return await RoomsRepository(session).get_filtered(hotel_id=hotel_id)
 
-@router.get("", response_model=list[RoomResponse])
-async def get_rooms(
-    pagination: PaginationDep,
-    hotel_id: Optional[int] = Query(None),
-    price_min: Optional[int] = Query(None),
-    price_max: Optional[int] = Query(None)
+@router.get("/{hotel_id}/rooms/{room_id}")
+async def get_room(
+    hotel_id: int,
+    room_id: int
 ):
     async with async_session_maker() as session:
-        return await RoomsRepository(session).get_all(
-            hotel_id=hotel_id,
-            price_min=price_min,
-            price_max=price_max,
-            limit=pagination.per_page,
-            offset=pagination.per_page * (pagination.page - 1)
+        return await RoomsRepository(session).get_one_or_none(
+            id=room_id,
+            hotel_id=hotel_id
         )
 
-@router.put("/{room_id}", response_model=RoomResponse)
-async def update_room(room_id: int, room_data: RoomAdd):
+@router.post("/{hotel_id}/rooms")
+async def create_room(hotel_id: int, room_data: RoomAddRequest = Body()):
+    _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
     async with async_session_maker() as session:
-        room = await RoomsRepository(session).edit(room_data, id=room_id)
+        room = await RoomsRepository(session).add(_room_data)
+        await session.commit()
+    return {"status": "OK", "data": room}
+
+@router.put("/{hotel_id}/rooms/{room_id}")
+async def edit_room(hotel_id: int, room_id: int, room_data: RoomAddRequest):
+    _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
+    async with async_session_maker() as session:
+        await RoomsRepository(session).edit(_room_data, id=room_id)
+        await session.commit()
+    return {"status": "OK"}
+
+@router.patch("/{hotel_id}/rooms/{room_id}")
+async def partial_update_room(hotel_id: int, room_id: int, room_data: RoomPatchRequest):
+    _room_data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump())
+    async with async_session_maker() as session:
+        room = await RoomsRepository(session).edit(_room_data, id=room_id, hotel_id=hotel_id, exclude_unset=True)
         if not room:
             raise HTTPException(status_code=404, detail="Номер не найден")
         await session.commit()
         return room
 
-@router.patch("/{room_id}", response_model=RoomResponse)
-async def partial_update_room(room_id: int, room_data: RoomUpdate):
+@router.delete("/{hotel_id}/rooms/{room_id}")
+async def delete_room(hotel_id: int, room_id: int):
     async with async_session_maker() as session:
-        room = await RoomsRepository(session).edit(room_data, id=room_id, exclude_unset=True)
-        if not room:
-            raise HTTPException(status_code=404, detail="Номер не найден")
-        await session.commit()
-        return room
-
-@router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_room(room_id: int):
-    async with async_session_maker() as session:
-        deleted = await RoomsRepository(session).delete(id=room_id)
+        deleted = await RoomsRepository(session).delete(id=room_id, hotel_id=hotel_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Номер не найден")
         await session.commit()

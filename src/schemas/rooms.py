@@ -1,23 +1,33 @@
 from pydantic import BaseModel, Field, ConfigDict
 
-class RoomBase(BaseModel):
+class RoomAddRequest(BaseModel):
+    title: str
+    description: str | None = None
+    price: int = Field(gt=0)
+    quantity: int = Field(ge=0)
+
+class RoomAdd(BaseModel):
     hotel_id: int
     title: str
     description: str | None = None
     price: int = Field(gt=0)
     quantity: int = Field(ge=0)
 
-class RoomAdd(RoomBase):
-    pass
+class Room(RoomAdd):
+    id: int
 
-class RoomUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+class RoomPatchRequest(BaseModel):
     title: str | None = None
     description: str | None = None
     price: int | None = Field(None, gt=0)
     quantity: int | None = Field(None, ge=0)
 
-class RoomResponse(RoomBase):
-    id: int
 
-    class Config:
-        from_attributes = True
+class RoomPatch(BaseModel):
+    hotel_id: int | None = None
+    title: str | None = None
+    description: str | None = None
+    price: int | None = Field(None, gt=0)
+    quantity: int | None = Field(None, ge=0)
