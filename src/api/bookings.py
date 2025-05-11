@@ -1,9 +1,23 @@
 from fastapi import APIRouter
 
 from src.api.dependencies import DBDep, UserIdDep
-from src.schemas.bookings import BookingAdd, BookingAddRequest, Booking
+from src.schemas.bookings import BookingAdd, BookingAddRequest
 
 router = APIRouter(prefix="/bookings", tags=["Бронирования"])
+
+@router.get("")
+async def get_all_bookings(db: DBDep):
+    """Получение всех бронирований"""
+    return await db.bookings.get_all()
+
+@router.get("/me")
+async def get_my_bookings(
+    db: DBDep,
+    user_id: UserIdDep
+):
+    """Получение бронирований текущего пользователя"""
+
+    return await db.bookings.get_filtered(user_id=user_id)
 
 @router.post("")
 async def add_booking(
@@ -24,17 +38,3 @@ async def add_booking(
     booking = await db.bookings.add(_booking_data)
     await db.commit()
     return {"statuc": "OK", "data": booking}
-
-@router.get("", response_model=list[Booking])
-async def get_all_bookings(db: DBDep):
-    """Получение всех бронирований"""
-    return await db.bookings.get_all()
-
-@router.get("/me", response_model=list[Booking])
-async def get_my_bookings(
-    db: DBDep,
-    user_id: UserIdDep
-):
-    """Получение бронирований текущего пользователя"""
-
-    return await db.bookings.get_filtered(user_id=user_id)
